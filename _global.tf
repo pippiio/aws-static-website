@@ -26,7 +26,7 @@ variable "default_tags" {
 locals {
   name_prefix = var.name_prefix
   default_tags = merge(var.default_tags, {
-    tf-module : "pippi.io/aws-rds"
+    tf-module : "pippi.io/aws-static-website"
     tf-workspace = terraform.workspace
   })
 
