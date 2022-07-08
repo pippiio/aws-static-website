@@ -3,6 +3,11 @@ output "s3_bucket" {
   value       = aws_s3_bucket.this.bucket
 }
 
+output "s3_bucket_arn" {
+  description = "The website S3 bucket ARN."
+  value       = aws_s3_bucket.this.arn
+}
+
 output "s3_website_domain" {
   description = "The website S3 bucket."
   value       = aws_s3_bucket_website_configuration.this.website_endpoint
