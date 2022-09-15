@@ -4,7 +4,8 @@ resource "aws_cloudfront_origin_access_identity" "this" {
 
 resource "aws_cloudfront_distribution" "this" {
   depends_on = [
-    aws_s3_bucket.this
+    aws_s3_bucket.this,
+    aws_acm_certificate.this[0]
   ]
 
   enabled             = true
