@@ -24,6 +24,15 @@ resource "aws_cloudfront_distribution" "this" {
     s3_origin_config {
       origin_access_identity = aws_cloudfront_origin_access_identity.this.cloudfront_access_identity_path
     }
+
+    dynamic "origin_shield" {
+      for_each = var.config.origin_shield_region != null ? [1] : []
+
+      content {
+        enabled              = true
+        origin_shield_region = var.config.origin_shield_region
+      }
+    }
   }
 
   default_cache_behavior {
@@ -34,11 +43,11 @@ resource "aws_cloudfront_distribution" "this" {
     cache_policy_id        = data.aws_cloudfront_cache_policy.this.id
   }
 
-  # logging_config {
-  #   include_cookies = false
-  #   bucket          = "mylogs.s3.amazonaws.com"
-  #   prefix          = "myprefix"
-  # }
+  logging_config {
+    include_cookies = false
+    bucket          = aws_s3_bucket.access_log.bucket_domain_name
+    prefix          = "cloudfront/"
+  }
 
   restrictions {
     geo_restriction {
