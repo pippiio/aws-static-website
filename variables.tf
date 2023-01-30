@@ -9,10 +9,11 @@ variable "config" {
     cache_policy            = optional(string, "CachingOptimized")
     origin_request_policy   = optional(string, "CORS-S3Origin")
     response_headers_policy = optional(string, "SecurityHeadersPolicy")
-    origin_shield_region    = optional(string, "eu-central-1")
+    origin_shield_region    = optional(string)
     acm_certificate_arn     = optional(string)
     disable_cloudfront      = optional(bool, false)
     kms_arn                 = optional(string)
     log_retention           = optional(number, 35)
+    pull_request_mode       = optional(bool, false)
   })
 }
