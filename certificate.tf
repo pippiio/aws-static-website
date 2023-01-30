@@ -6,4 +6,16 @@ resource "aws_acm_certificate" "this" {
   subject_alternative_names = local.config.domain_alias
   validation_method         = "DNS"
   tags                      = local.default_tags
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
+
+# resource "aws_acm_certificate_validation" "this" {
+#   count    = local.config.acm_certificate_arn == null ? 1 : 0
+#   provider = aws.use1
+
+#   certificate_arn = aws_acm_certificate.this.arn
+#   validation_record_fqdns = [for record in aws]
+# }

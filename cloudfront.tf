@@ -10,19 +10,28 @@ resource "aws_cloudfront_distribution" "this" {
 
   enabled             = true
   is_ipv6_enabled     = true
+  wait_for_deployment = false
   price_class         = "PriceClass_100"
   default_root_object = local.config.index_document
   aliases             = aws_acm_certificate.this[0].status != "ISSUED" ? [] : concat([local.config.domain_name], tolist(local.config.domain_alias))
-  wait_for_deployment = false
   comment             = "Cloudfront CDN for ${local.name_prefix}website"
   tags                = local.default_tags
 
   origin {
-    domain_name = aws_s3_bucket.this.bucket_regional_domain_name
+    domain_name = aws_s3_bucket_website_configuration.this.website_endpoint
     origin_id   = "s3-cloudfront"
 
-    s3_origin_config {
-      origin_access_identity = aws_cloudfront_origin_access_identity.this.cloudfront_access_identity_path
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = "http-only"
+      origin_read_timeout    = 30
+      origin_ssl_protocols   = ["TLSv1.2"]
+    }
+
+    custom_header {
+      name  = "Referer"
+      value = random_password.this.result
     }
 
     dynamic "origin_shield" {
@@ -30,17 +39,28 @@ resource "aws_cloudfront_distribution" "this" {
 
       content {
         enabled              = true
-        origin_shield_region = var.config.origin_shield_region
+        origin_shield_region = coalesce(var.config.origin_shield_region, local.region_name)
       }
     }
   }
 
   default_cache_behavior {
-    target_origin_id       = "s3-cloudfront"
-    viewer_protocol_policy = "redirect-to-https"
-    allowed_methods        = ["GET", "HEAD", "OPTIONS"]
-    cached_methods         = ["GET", "HEAD"]
-    cache_policy_id        = data.aws_cloudfront_cache_policy.this.id
+    target_origin_id           = "s3-cloudfront"
+    viewer_protocol_policy     = "redirect-to-https"
+    allowed_methods            = ["GET", "HEAD", "OPTIONS"]
+    cached_methods             = ["GET", "HEAD"]
+    cache_policy_id            = data.aws_cloudfront_cache_policy.this.id
+    origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.this.id
+    response_headers_policy_id = data.aws_cloudfront_response_headers_policy.this.id
+
+    dynamic "function_association" {
+      for_each = var.config.pull_request_mode ? [1] : []
+
+      content {
+        event_type   = "viewer-request"
+        function_arn = aws_cloudfront_function.request[0].arn
+      }
+    }
   }
 
   logging_config {
@@ -85,6 +105,24 @@ resource "aws_cloudfront_distribution" "this" {
   }
 }
 
+resource "aws_cloudfront_function" "request" {
+  count = var.config.pull_request_mode ? 1 : 0
+
+  name    = "pullrequest-prefix"
+  runtime = "cloudfront-js-1.0"
+  comment = "Prefix path with subdomain"
+  publish = true
+  code    = file("${path.module}/src/request.js")
+}
+
 data "aws_cloudfront_cache_policy" "this" {
   name = "Managed-${local.config.cache_policy}"
+}
+
+data "aws_cloudfront_origin_request_policy" "this" {
+  name = "Managed-${local.config.origin_request_policy}"
+}
+
+data "aws_cloudfront_response_headers_policy" "this" {
+  name = "Managed-${local.config.response_headers_policy}"
 }
