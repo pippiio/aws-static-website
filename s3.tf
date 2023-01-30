@@ -54,22 +54,14 @@ resource "aws_s3_bucket_website_configuration" "this" {
   }
 }
 
-# resource "aws_s3_bucket_cors_configuration" "this" {
-#   bucket = aws_s3_bucket.this.bucket
+resource "aws_s3_bucket_cors_configuration" "this" {
+  bucket = aws_s3_bucket.this.bucket
 
-#   cors_rule {
-#     allowed_headers = ["*"]
-#     allowed_methods = ["PUT", "POST"]
-#     allowed_origins = ["https://s3-website-test.hashicorp.com"]
-#     expose_headers  = ["ETag"]
-#     max_age_seconds = 3000
-#   }
-
-#   cors_rule {
-#     allowed_methods = ["GET"]
-#     allowed_origins = ["*"]
-#   }
-# }
+  cors_rule {
+    allowed_methods = ["GET"]
+    allowed_origins = ["*"]
+  }
+}
 
 data "aws_iam_policy_document" "this" {
   statement {
@@ -79,7 +71,7 @@ data "aws_iam_policy_document" "this" {
       aws_s3_bucket.this.arn,
       "${aws_s3_bucket.this.arn}/*"
     ]
-    actions = ["s3:*"]
+    actions = ["s3:PutObject"]
 
     principals {
       type        = "*"
@@ -150,30 +142,26 @@ data "aws_iam_policy_document" "this" {
     ]
   }
 
-  dynamic "statement" {
-    for_each = length(local.config.allowed_ip_cidrs) > 0 ? [1] : []
+  statement {
+    sid = "Allow HTTP request w. secret referer header"
 
-    content {
-      sid = "Allowed IP CIDRs Browsing"
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
 
-      principals {
-        type        = "*"
-        identifiers = ["*"]
-      }
+    actions = [
+      "s3:GetObject",
+    ]
 
-      actions = [
-        "s3:GetObject",
-      ]
+    resources = [
+      "${aws_s3_bucket.this.arn}/*",
+    ]
 
-      resources = [
-        "${aws_s3_bucket.this.arn}/*",
-      ]
-
-      condition {
-        test     = "IpAddress"
-        variable = "aws:SourceIp"
-        values   = local.config.allowed_ip_cidrs
-      }
+    condition {
+      test     = "StringLike"
+      variable = "aws:Referer"
+      values   = [random_password.this.result]
     }
   }
 }
