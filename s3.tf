@@ -46,11 +46,11 @@ resource "aws_s3_bucket_website_configuration" "this" {
   bucket = aws_s3_bucket.this.bucket
 
   index_document {
-    suffix = local.config.index_document
+    suffix = var.config.index_document
   }
 
   error_document {
-    key = local.config.error_document
+    key = var.config.error_document
   }
 }
 
@@ -60,6 +60,20 @@ resource "aws_s3_bucket_cors_configuration" "this" {
   cors_rule {
     allowed_methods = ["GET"]
     allowed_origins = ["*"]
+  }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "this" {
+  count  = var.config.expiration_days >= 0 ? 1 : 0
+  bucket = aws_s3_bucket.this.bucket
+
+  rule {
+    id     = "expire"
+    status = "Enabled"
+
+    expiration {
+      days = var.config.expiration_days
+    }
   }
 }
 

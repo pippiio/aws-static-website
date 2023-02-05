@@ -1,9 +1,9 @@
 resource "aws_acm_certificate" "this" {
-  count    = local.config.acm_certificate_arn == null ? 1 : 0
+  count    = var.config.acm_certificate_arn == null ? 1 : 0
   provider = aws.use1
 
-  domain_name               = local.config.domain_name
-  subject_alternative_names = local.config.domain_alias
+  domain_name               = var.config.domain_name
+  subject_alternative_names = var.config.domain_alias
   validation_method         = "DNS"
   tags                      = local.default_tags
 
@@ -12,10 +12,6 @@ resource "aws_acm_certificate" "this" {
   }
 }
 
-# resource "aws_acm_certificate_validation" "this" {
-#   count    = local.config.acm_certificate_arn == null ? 1 : 0
-#   provider = aws.use1
-
-#   certificate_arn = aws_acm_certificate.this.arn
-#   validation_record_fqdns = [for record in aws]
-# }
+locals {
+  certificate = var.config.acm_certificate_arn != null ? var.config.acm_certificate_arn : aws_acm_certificate.this[0].status == "ISSUED" ? aws_acm_certificate.this[0].arn : null
+}
