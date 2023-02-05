@@ -1,7 +1,8 @@
 function handler(event) {
 	var request = event.request;
-	var prefix = request.headers.host.value.split('.')[0];
-	
-	request.uri = '/' + prefix + request.uri;
+
+// ${country_redirect}
+// ${subdomain_to_path_redirect}
+
 	return request;
 }
