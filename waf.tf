@@ -129,7 +129,7 @@ resource "aws_wafv2_web_acl" "this" {
 
   # 11 Blocked countries
   dynamic "rule" {
-    for_each = length(var.config.firewall.blocked_contries) > 0 ? [1] : []
+    for_each = length(var.config.firewall.blocked_countries) > 0 ? [1] : []
 
     content {
       name     = "blocked-countries"
@@ -141,7 +141,7 @@ resource "aws_wafv2_web_acl" "this" {
 
       statement {
         geo_match_statement {
-          country_codes = var.config.firewall.blocked_contries
+          country_codes = var.config.firewall.blocked_countries
         }
       }
 
@@ -329,7 +329,7 @@ resource "aws_wafv2_web_acl" "this" {
 
   # 90 Allowed countries
   dynamic "rule" {
-    for_each = length(var.config.firewall.allowed_contries) > 0 ? [1] : []
+    for_each = length(var.config.firewall.allowed_countries) > 0 ? [1] : []
 
     content {
       name     = "allowed-countries"
@@ -341,7 +341,7 @@ resource "aws_wafv2_web_acl" "this" {
 
       statement {
         geo_match_statement {
-          country_codes = var.config.firewall.allowed_contries
+          country_codes = var.config.firewall.allowed_countries
         }
       }
 
@@ -361,4 +361,3 @@ resource "aws_wafv2_web_acl" "this" {
     metric_name                = "${local.name_prefix}cloudfront-waf"
   }
 }
-

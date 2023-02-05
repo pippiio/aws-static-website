@@ -29,9 +29,17 @@ output "cloudfront_domain_name" {
 }
 
 output "certificate_validation_options" {
-  value = aws_acm_certificate.this[0].domain_validation_options
+  value = try(aws_acm_certificate.this[0].domain_validation_options, null)
 }
 
 output "certificate_status" {
   value = aws_acm_certificate.this[0].status
+}
+
+output "secret" {
+  value = {
+    key = "x-${local.name_prefix}secret"
+    value = random_password.this.result
+  }
+  sensitive = true
 }

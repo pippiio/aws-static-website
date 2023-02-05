@@ -47,9 +47,9 @@ variable "config" {
       ])
 
       blocked_ip_cidrs = optional(set(string), [])
-      blocked_contries = optional(set(string), [])
+      blocked_countries = optional(set(string), [])
       allowed_ip_cidrs = optional(set(string), [])
-      allowed_contries = optional(set(string), [])
+      allowed_countries = optional(set(string), [])
       rule_groups      = optional(map(string), {})
     }), {})
   })
