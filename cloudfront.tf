@@ -8,7 +8,7 @@ resource "aws_cloudfront_distribution" "this" {
   wait_for_deployment = false
   comment             = "Cloudfront CDN for ${local.name_prefix}website"
   price_class         = "PriceClass_100"
-  default_root_object = var.config.index_document
+  default_root_object = length(var.config.language_redirect) > 0 ? null : var.config.index_document
   aliases             = aws_acm_certificate.this[0].status != "ISSUED" ? [] : concat([var.config.domain_name], tolist(var.config.domain_alias))
   tags                = local.default_tags
   web_acl_id          = aws_wafv2_web_acl.this.arn
@@ -94,7 +94,7 @@ resource "aws_cloudfront_distribution" "this" {
     compress                   = true
 
     dynamic "function_association" {
-      for_each = aws_cloudfront_function.default
+      for_each = aws_cloudfront_function.subdomain_to_path
 
       content {
         event_type   = "viewer-request"
@@ -137,6 +137,24 @@ resource "aws_cloudfront_distribution" "this" {
     }
   }
 
+  dynamic "ordered_cache_behavior" {
+    for_each = length(var.config.language_redirect) > 0 ? [1] : []
+
+    content {
+      path_pattern             = "/"
+      target_origin_id         = "${local.name_prefix}s3-website-bucket"
+      allowed_methods          = ["GET", "HEAD", "OPTIONS"]
+      cached_methods           = ["GET", "HEAD"]
+      viewer_protocol_policy   = "allow-all"
+      cache_policy_id          = data.aws_cloudfront_cache_policy.disabled.id
+
+      function_association {
+        event_type   = "viewer-request"
+        function_arn = aws_cloudfront_function.language_redirect[0].arn
+      }
+    }
+  }
+
   logging_config {
     include_cookies = false
     bucket          = aws_s3_bucket.access_log.bucket_domain_name
@@ -145,7 +163,8 @@ resource "aws_cloudfront_distribution" "this" {
 
   restrictions {
     geo_restriction {
-      restriction_type = "none"
+      restriction_type = length(var.config.firewall.allowed_countries) > 0 ? "whitelist" : length(var.config.firewall.blocked_countries) > 0 ? "blacklist": "none"
+      locations = length(var.config.firewall.allowed_countries) > 0 ? var.config.firewall.allowed_countries : var.config.firewall.blocked_countries
     }
   }
 
@@ -178,6 +197,10 @@ data "aws_cloudfront_cache_policy" "default" {
   name = "Managed-CachingOptimized"
 }
 
+data "aws_cloudfront_cache_policy" "disabled" {
+  name = "Managed-CachingDisabled"
+}
+
 data "aws_cloudfront_origin_request_policy" "default" {
   name = "Managed-CORS-S3Origin"
 }
@@ -204,48 +227,26 @@ data "aws_cloudfront_response_headers_policy" "additional" {
   name = each.value.response_headers_policy
 }
 
-resource "aws_cloudfront_function" "default" {
-  count = local.enable_viewer_request ? 1 : 0
+resource "aws_cloudfront_function" "subdomain_to_path" {
+  count = startswith(var.config.domain_name, "*.") ? 1 : 0
 
-  name    = "pullrequest-prefix"
+  name    = "subdomain-to-path"
   runtime = "cloudfront-js-1.0"
-  comment = "Modify request path"
+  comment = "Redirect foo.example.com/ -> example.com/foo/ for wildcard domain"
   publish = true
-  code = templatefile("${path.module}/src/request.js", {
-    subdomain_to_path_redirect = startswith(var.config.domain_name, "*.") ? local.subdomain_to_path_redirect : ""
-    country_redirect           = length(var.config.language_redirect) > 0 ? local.country_redirect : ""
-  })
+  code    = file("${path.module}/src/subdomain-to-path.js")
 }
 
-locals {
-  enable_viewer_request = !startswith(var.config.domain_name, "*.") || length(var.config.language_redirect) > 0
+resource "aws_cloudfront_function" "language_redirect" {
+  count = length(var.config.language_redirect) > 0 ? 1 : 0
 
-  subdomain_to_path_redirect = <<EOL
-    // Redirect foo.example.com/ -> example.com/foo/ for wildcard domain
-    var prefix = request.headers.host.value.split('.')[0];
-    request.uri = '/' + prefix + request.uri;
-  EOL
-
-  country_redirect = format(<<EOL
-    // Prefix path by country code
-    if (request.uri === "/" &&
-        'cloudfront-viewer-country' in request.headers) {
-      switch(request.headers['cloudfront-viewer-country'].value.toLowerCase()) {
-        default:
-          request.uri = '/%s' + request.uri;
-          break;
-        %s
-      }
-    }
-    EOL
-    ,
-    one([for country, path in var.config.language_redirect : path if country == "*"]),
-    join("", [for country, path in var.config.language_redirect : <<EOL
-        case '${lower(country)}':
-          request.uri = '/${path}' + request.uri;
-          break;
-      EOL
-      if country != "*"
-    ])
-  )
+  name    = "viewer-language-redirect"
+  runtime = "cloudfront-js-1.0"
+  comment = "Redirects base on detected viewer language"
+  publish = true
+  code = templatefile("${path.module}/src/language-redirect.js", {
+    known_language    = join(", ", [for language, location in var.config.language_redirect : "'${language}'" if language != "*"])
+    default_location  = one([for language, location in var.config.language_redirect : location if language == "*"])
+    language_location = { for language, location in var.config.language_redirect : language => location if language != "*" }
+  })
 }

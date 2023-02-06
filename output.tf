@@ -38,8 +38,7 @@ output "certificate_status" {
 
 output "secret" {
   value = {
-    key = "x-${local.name_prefix}secret"
-    value = random_password.this.result
+    key   = "x-${local.name_prefix}secret"
+    value = sensitive(random_password.this.result)
   }
-  sensitive = true
 }
