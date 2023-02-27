@@ -51,6 +51,10 @@ variable "config" {
       allowed_ip_cidrs  = optional(set(string), [])
       allowed_countries = optional(set(string), [])
       rule_groups       = optional(map(string), {})
+      bot_control = optional(object({
+        start_path       = optional(string, "/")
+        inspection_level = optional(string, "COMMON")
+      }))
     }), {})
   })
 }

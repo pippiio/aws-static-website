@@ -141,12 +141,12 @@ resource "aws_cloudfront_distribution" "this" {
     for_each = length(var.config.language_redirect) > 0 ? [1] : []
 
     content {
-      path_pattern             = "/"
-      target_origin_id         = "${local.name_prefix}s3-website-bucket"
-      allowed_methods          = ["GET", "HEAD", "OPTIONS"]
-      cached_methods           = ["GET", "HEAD"]
-      viewer_protocol_policy   = "allow-all"
-      cache_policy_id          = data.aws_cloudfront_cache_policy.disabled.id
+      path_pattern           = "/"
+      target_origin_id       = "${local.name_prefix}s3-website-bucket"
+      allowed_methods        = ["GET", "HEAD", "OPTIONS"]
+      cached_methods         = ["GET", "HEAD"]
+      viewer_protocol_policy = "allow-all"
+      cache_policy_id        = data.aws_cloudfront_cache_policy.disabled.id
 
       function_association {
         event_type   = "viewer-request"
@@ -163,8 +163,8 @@ resource "aws_cloudfront_distribution" "this" {
 
   restrictions {
     geo_restriction {
-      restriction_type = length(var.config.firewall.allowed_countries) > 0 ? "whitelist" : length(var.config.firewall.blocked_countries) > 0 ? "blacklist": "none"
-      locations = length(var.config.firewall.allowed_countries) > 0 ? var.config.firewall.allowed_countries : var.config.firewall.blocked_countries
+      restriction_type = length(var.config.firewall.allowed_countries) > 0 ? "whitelist" : length(var.config.firewall.blocked_countries) > 0 ? "blacklist" : "none"
+      locations        = length(var.config.firewall.allowed_countries) > 0 ? var.config.firewall.allowed_countries : var.config.firewall.blocked_countries
     }
   }
 

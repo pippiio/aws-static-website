@@ -41,4 +41,5 @@ output "secret" {
     key   = "x-${local.name_prefix}secret"
     value = sensitive(random_password.this.result)
   }
+  sensitive = true
 }
