@@ -103,6 +103,51 @@ resource "aws_wafv2_web_acl" "this" {
     }
   }
 
+  # 9 AWS Managed Rules
+  dynamic "rule" {
+    for_each = var.config.firewall.bot_control
+
+    content {
+      name     = "AWS-AWSManagedRulesBotControlRuleSet"
+      priority = 9
+
+      override_action {
+        none {}
+      }
+
+      statement {
+        managed_rule_group_statement {
+          name        = "AWS-AWSManagedRulesBotControlRuleSet"
+          vendor_name = "AWS"
+
+          scope_down_statement {
+            byte_match_statement {
+              search_string = each.value.start_path
+              field_to_match {
+                uri_path {}
+              }
+              text_transformation {
+                priority = 0
+                type     = "NONE"
+              }
+            }
+            managed_rule_group_configs {
+              aws_managed_rules_bot_control_rule_set {
+                inspection_level = each.value.inspection_level
+              }
+            }
+          }
+        }
+      }
+
+      visibility_config {
+        cloudwatch_metrics_enabled = true
+        sampled_requests_enabled   = true
+        metric_name                = "AWS-AWSManagedRulesBotControlRuleSet"
+      }
+    }
+  }
+
   # 10 Blocked IP CIDRs
   dynamic "rule" {
     for_each = length(var.config.firewall.blocked_ip_cidrs) > 0 ? [1] : []
