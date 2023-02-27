@@ -54,7 +54,7 @@ variable "config" {
       bot_control = optional(object({
         start_path       = optional(string, "/")
         inspection_level = optional(string, "COMMON")
-      }))
+      }), {})
     }), {})
   })
 }
