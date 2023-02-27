@@ -105,7 +105,7 @@ resource "aws_wafv2_web_acl" "this" {
 
   # 9 AWS Managed Rules
   dynamic "rule" {
-    for_each = var.config.firewall.bot_control != null ? var.config.firewall.bot_control : []
+    for_each = var.config.firewall.bot_control != null ? [var.config.firewall.bot_control] : []
 
     content {
       name     = "AWS-AWSManagedRulesBotControlRuleSet"
@@ -122,7 +122,8 @@ resource "aws_wafv2_web_acl" "this" {
 
           scope_down_statement {
             byte_match_statement {
-              search_string = rule.value.start_path
+              search_string         = rule.value.start_path
+              positional_constraint = "STARTS_WITH"
               field_to_match {
                 uri_path {}
               }
@@ -131,10 +132,10 @@ resource "aws_wafv2_web_acl" "this" {
                 type     = "NONE"
               }
             }
-            managed_rule_group_configs {
-              aws_managed_rules_bot_control_rule_set {
-                inspection_level = rule.value.inspection_level
-              }
+          }
+          managed_rule_group_configs {
+            aws_managed_rules_bot_control_rule_set {
+              inspection_level = rule.value.inspection_level
             }
           }
         }
