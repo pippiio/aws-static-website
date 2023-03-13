@@ -108,7 +108,7 @@ resource "aws_wafv2_web_acl" "this" {
     for_each = var.config.firewall.bot_control != null ? [var.config.firewall.bot_control] : []
 
     content {
-      name     = "AWS-AWSManagedRulesBotControlRuleSet"
+      name     = "AWSManagedRulesBotControlRuleSet"
       priority = 9
 
       override_action {
@@ -117,7 +117,7 @@ resource "aws_wafv2_web_acl" "this" {
 
       statement {
         managed_rule_group_statement {
-          name        = "AWS-AWSManagedRulesBotControlRuleSet"
+          name        = "AWSManagedRulesBotControlRuleSet"
           vendor_name = "AWS"
 
           scope_down_statement {
