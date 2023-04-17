@@ -41,10 +41,12 @@ variable "config" {
     firewall = optional(object({
       block_by_default = optional(bool, false)
 
-      aws_managed_rules = optional(set(string), [
-        "AWSManagedRulesAmazonIpReputationList",
-        "AWSManagedRulesCommonRuleSet",
-      ])
+      aws_managed_rules = optional(map(object({
+        rule_action_override = optional(map(string), {})
+      })), {
+        AWSManagedRulesAmazonIpReputationList = {},
+        AWSManagedRulesCommonRuleSet = {}
+      })
 
       blocked_ip_cidrs  = optional(set(string), [])
       blocked_countries = optional(set(string), [])
@@ -57,4 +59,11 @@ variable "config" {
       }))
     }), {})
   })
+
+  ##### Firewall #####
+
+  validation {
+    error_message = "Invalid rule action type. Valid values includes [allow, block, captcha, count]."
+    condition     = try(alltrue(flatten([for rule in values(var.config.firewall.aws_managed_rules) : [for action in values(rule.rule_action_override) : contains(["allow", "block", "captcha", "count"], action)] if rule.rule_action_override != null])), true)
+  }
 }
