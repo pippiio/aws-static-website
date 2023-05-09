@@ -104,6 +104,24 @@ resource "aws_cloudfront_distribution" "this" {
   }
 
   dynamic "ordered_cache_behavior" {
+    for_each = length(var.config.language_redirect) > 0 ? [1] : []
+
+    content {
+      path_pattern           = "/"
+      target_origin_id       = "${local.name_prefix}s3-website-bucket"
+      allowed_methods        = ["GET", "HEAD", "OPTIONS"]
+      cached_methods         = ["GET", "HEAD"]
+      viewer_protocol_policy = "allow-all"
+      cache_policy_id        = data.aws_cloudfront_cache_policy.disabled.id
+
+      function_association {
+        event_type   = "viewer-request"
+        function_arn = aws_cloudfront_function.language_redirect[0].arn
+      }
+    }
+  }
+
+  dynamic "ordered_cache_behavior" {
     for_each = var.config.additional_behaviors
 
     content {
@@ -133,24 +151,6 @@ resource "aws_cloudfront_distribution" "this" {
           event_type   = "viewer-response"
           function_arn = ordered_cache_behavior.value.viewer_response_function
         }
-      }
-    }
-  }
-
-  dynamic "ordered_cache_behavior" {
-    for_each = length(var.config.language_redirect) > 0 ? [1] : []
-
-    content {
-      path_pattern           = "/"
-      target_origin_id       = "${local.name_prefix}s3-website-bucket"
-      allowed_methods        = ["GET", "HEAD", "OPTIONS"]
-      cached_methods         = ["GET", "HEAD"]
-      viewer_protocol_policy = "allow-all"
-      cache_policy_id        = data.aws_cloudfront_cache_policy.disabled.id
-
-      function_association {
-        event_type   = "viewer-request"
-        function_arn = aws_cloudfront_function.language_redirect[0].arn
       }
     }
   }
