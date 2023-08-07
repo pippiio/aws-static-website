@@ -5,7 +5,7 @@ A static-website based on S3 with CloudFront CDN
 
 The following requirements are needed by this module:
 
-- <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (~> 1.4.0)
+- <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (~> 1.5.0)
 
 - <a name="requirement_aws"></a> [aws](#requirement\_aws) (~> 4.0)
 
