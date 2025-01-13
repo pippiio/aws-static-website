@@ -13,72 +13,115 @@ resource "aws_cloudfront_distribution" "this" {
   tags                = local.default_tags
   web_acl_id          = aws_wafv2_web_acl.this.arn
 
-  origin {
-    origin_id   = "${local.name_prefix}s3-website-bucket"
-    domain_name = var.config.force_ssl_in_transit ? aws_s3_bucket.this[0].bucket_regional_domain_name : aws_s3_bucket_website_configuration.this[0].website_endpoint
+  # origin {
+  #   origin_id   = "${local.name_prefix}s3-website-bucket"
+  #   domain_name = var.config.force_ssl_in_transit ? aws_s3_bucket.this[0].bucket_regional_domain_name : aws_s3_bucket_website_configuration.this[0].website_endpoint
 
-    dynamic "s3_origin_config" {
-      for_each = var.config.force_ssl_in_transit ? [1] : []
+  #   dynamic "s3_origin_config" {
+  #     for_each = var.config.force_ssl_in_transit ? [1] : []
 
-      content {
-        origin_access_identity = aws_cloudfront_origin_access_identity.this.cloudfront_access_identity_path
-      }
-    }
+  #     content {
+  #       origin_access_identity = aws_cloudfront_origin_access_identity.this.cloudfront_access_identity_path
+  #     }
+  #   }
 
-    dynamic "custom_origin_config" {
-      for_each = !var.config.force_ssl_in_transit ? [1] : []
+  #   dynamic "custom_origin_config" {
+  #     for_each = !var.config.force_ssl_in_transit ? [1] : []
 
-      content {
-        http_port              = 80
-        https_port             = 443
-        origin_protocol_policy = "http-only"
-        origin_ssl_protocols   = ["TLSv1.2"]
-        origin_read_timeout    = 10
-      }
-    }
+  #     content {
+  #       http_port              = 80
+  #       https_port             = 443
+  #       origin_protocol_policy = "http-only"
+  #       origin_ssl_protocols   = ["TLSv1.2"]
+  #       origin_read_timeout    = 10
+  #     }
+  #   }
 
-    dynamic "custom_header" {
-      for_each = !var.config.force_ssl_in_transit ? [1] : []
+  #   dynamic "custom_header" {
+  #     for_each = !var.config.force_ssl_in_transit ? [1] : []
 
-      content {
-        name  = "Referer"
-        value = random_password.this.result
-      }
-    }
+  #     content {
+  #       name  = "Referer"
+  #       value = random_password.this.result
+  #     }
+  #   }
 
-    origin_shield {
-      enabled              = true
-      origin_shield_region = coalesce(var.config.origin_shield_region, local.region_name)
-    }
-  }
+  #   origin_shield {
+  #     enabled              = true
+  #     origin_shield_region = coalesce(var.config.origin_shield_region, local.region_name)
+  #   }
+  # }
+
+  # dynamic "origin" {
+  #   for_each = var.config.additional_origins
+
+  #   content {
+  #     origin_id   = origin.key
+  #     domain_name = origin.value.domain_name
+  #     origin_path = origin.value.path
+
+  #     custom_origin_config {
+  #       http_port              = origin.value.http_port
+  #       https_port             = origin.value.https_port
+  #       origin_protocol_policy = origin.value.protocol_policy
+  #       origin_ssl_protocols   = ["TLSv1.2"]
+  #       origin_read_timeout    = 30
+  #     }
+
+  #     origin_shield {
+  #       enabled              = origin.value.shielded
+  #       origin_shield_region = coalesce(var.config.origin_shield_region, local.region_name)
+  #     }
+
+  #     dynamic "custom_header" {
+  #       for_each = origin.value.headers
+  #       content {
+  #         name  = custom_header.key
+  #         value = custom_header.value
+  #       }
+  #     }
+  #   }
+  # }
 
   dynamic "origin" {
-    for_each = var.config.additional_origins
+    for_each = var.config.buckets
 
     content {
-      origin_id   = origin.key
-      domain_name = origin.value.domain_name
-      origin_path = origin.value.path
+      origin_id   = "origin-${each.value.domain_name}"  # Use the domain name to create a unique origin ID
+      domain_name = each.value.domain_name
 
-      custom_origin_config {
-        http_port              = origin.value.http_port
-        https_port             = origin.value.https_port
-        origin_protocol_policy = origin.value.protocol_policy
-        origin_ssl_protocols   = ["TLSv1.2"]
-        origin_read_timeout    = 30
+      dynamic "s3_origin_config" {
+        for_each = each.value.force_ssl_in_transit ? [1] : []
+
+        content {
+          origin_access_identity = aws_cloudfront_origin_access_identity.this.cloudfront_access_identity_path
+        }
       }
 
-      origin_shield {
-        enabled              = origin.value.shielded
-        origin_shield_region = coalesce(var.config.origin_shield_region, local.region_name)
+      dynamic "custom_origin_config" {
+        for_each = !each.value.force_ssl_in_transit ? [1] : []
+
+        content {
+          http_port              = 80
+          https_port             = 443
+          origin_protocol_policy = "http-only"
+          origin_ssl_protocols   = ["TLSv1.2"]
+          origin_read_timeout    = 10
+        }
       }
 
       dynamic "custom_header" {
-        for_each = origin.value.headers
+        for_each = !each.value.force_ssl_in_transit ? [1] : []
+
         content {
-          name  = custom_header.key
-          value = custom_header.value
+          name  = "Referer"
+          value = random_password.this.result
         }
+      }
+
+      origin_shield {
+        enabled              = true
+        origin_shield_region = coalesce(var.config.origin_shield_region, local.region_name)
       }
     }
   }
