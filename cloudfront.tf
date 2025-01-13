@@ -15,7 +15,7 @@ resource "aws_cloudfront_distribution" "this" {
 
   origin {
     origin_id   = "${local.name_prefix}s3-website-bucket"
-    domain_name = var.config.force_ssl_in_transit ? aws_s3_bucket.this.bucket_regional_domain_name : aws_s3_bucket_website_configuration.this.website_endpoint
+    domain_name = var.config.force_ssl_in_transit ? aws_s3_bucket.this[0].bucket_regional_domain_name : aws_s3_bucket_website_configuration.this[0].website_endpoint
 
     dynamic "s3_origin_config" {
       for_each = var.config.force_ssl_in_transit ? [1] : []
@@ -169,9 +169,9 @@ resource "aws_cloudfront_distribution" "this" {
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = local.certificate == null
+    cloudfront_default_certificate = local.certificate_arns[0] == null
 
-    acm_certificate_arn      = local.certificate
+    acm_certificate_arn      = local.certificate_arns[0]
     minimum_protocol_version = "TLSv1.2_2021"
     ssl_support_method       = "sni-only"
   }

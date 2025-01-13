@@ -1,20 +1,22 @@
 variable "config" {
   type = object({
-    domain_name             = string
-    path                    = optional(string)
-    domain_alias            = optional(set(string), [])
-    index_document          = optional(string, "index.html")
-    error_document          = optional(string, "error.html")
-    error_document_code     = optional(set(string), [400, 405, 414, 416, 500, 501, 502, 503, 504])
-    response_headers_policy = optional(string, "Managed-SecurityHeadersPolicy")
-    force_ssl_in_transit    = optional(bool, false)
-    kms_arn                 = optional(string)
-    acm_certificate_arn     = optional(string)
-    log_retention           = optional(number, 35)
-    expiration_days         = optional(number, 0)
-    origin_shield_region    = optional(string)
-    language_redirect       = optional(map(string), {})
-    disallow_robots         = optional(bool, false)
+    buckets = list(object({
+      domain_name             = string
+      path                    = optional(string)
+      domain_alias            = optional(set(string), [])
+      index_document          = optional(string, "index.html")
+      error_document          = optional(string, "error.html")
+      error_document_code     = optional(set(string), [400, 405, 414, 416, 500, 501, 502, 503, 504])
+      response_headers_policy = optional(string, "Managed-SecurityHeadersPolicy")
+      force_ssl_in_transit    = optional(bool, false)
+      kms_arn                 = optional(string)
+      acm_certificate_arn     = optional(string)
+      log_retention           = optional(number, 35)
+      expiration_days         = optional(number, 0)
+      origin_shield_region    = optional(string)
+      language_redirect       = optional(map(string), {})
+      disallow_robots         = optional(bool, false)
+    }))
 
     additional_origins = optional(map(object({
       domain_name     = string

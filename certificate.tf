@@ -1,9 +1,10 @@
 resource "aws_acm_certificate" "this" {
-  count    = var.config.acm_certificate_arn == null ? 1 : 0
+  for_each = { for idx, bucket in var.config.buckets : idx => bucket if bucket.acm_certificate_arn == null }
+
   provider = aws.use1
 
-  domain_name               = var.config.domain_name
-  subject_alternative_names = var.config.domain_alias
+  domain_name               = each.value.domain_name
+  subject_alternative_names = each.value.domain_alias
   validation_method         = "DNS"
   tags                      = local.default_tags
 
@@ -13,5 +14,10 @@ resource "aws_acm_certificate" "this" {
 }
 
 locals {
-  certificate = var.config.acm_certificate_arn != null ? var.config.acm_certificate_arn : aws_acm_certificate.this[0].status == "ISSUED" ? aws_acm_certificate.this[0].arn : null
+  certificate_arns = {
+    for idx, bucket in var.config.buckets : idx => (
+      bucket.acm_certificate_arn != null ? bucket.acm_certificate_arn :
+      aws_acm_certificate.this[idx].arn
+    )
+  }
 }

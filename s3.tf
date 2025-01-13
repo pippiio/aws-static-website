@@ -1,4 +1,6 @@
 resource "random_pet" "this" {
+  for_each = var.config.buckets
+
   keepers = {
     account = local.region_name
     region  = local.account_id
@@ -7,12 +9,16 @@ resource "random_pet" "this" {
 }
 
 resource "aws_s3_bucket" "this" {
-  bucket = "${local.name_prefix}static-website-${random_pet.this.id}"
+  for_each = var.config.buckets
+
+  bucket = "${local.name_prefix}static-website-${random_pet.this[each.key].id}"
   tags   = local.default_tags
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
-  bucket = aws_s3_bucket.this.bucket
+  for_each = aws_s3_bucket.this
+
+  bucket = each.value.id
 
   rule {
     apply_server_side_encryption_by_default {
@@ -22,7 +28,9 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
 }
 
 resource "aws_s3_bucket_public_access_block" "this" {
-  bucket = aws_s3_bucket.this.id
+  for_each = aws_s3_bucket.this
+
+  bucket = each.value.id
 
   ignore_public_acls      = true
   block_public_acls       = true
@@ -31,14 +39,18 @@ resource "aws_s3_bucket_public_access_block" "this" {
 }
 
 resource "aws_s3_bucket_versioning" "this" {
-  bucket = aws_s3_bucket.this.id
+  for_each = aws_s3_bucket.this
+
+  bucket = each.value.id
   versioning_configuration {
     status = "Enabled"
   }
 }
 
 resource "aws_s3_bucket_website_configuration" "this" {
-  bucket = aws_s3_bucket.this.bucket
+  for_each = aws_s3_bucket.this
+
+  bucket = each.value.id
 
   index_document {
     suffix = var.config.index_document
@@ -50,7 +62,9 @@ resource "aws_s3_bucket_website_configuration" "this" {
 }
 
 resource "aws_s3_bucket_cors_configuration" "this" {
-  bucket = aws_s3_bucket.this.bucket
+  for_each = aws_s3_bucket.this
+
+  bucket = each.value.id
 
   cors_rule {
     allowed_methods = ["GET"]
@@ -59,8 +73,11 @@ resource "aws_s3_bucket_cors_configuration" "this" {
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "this" {
-  count  = var.config.expiration_days >= 0 ? 1 : 0
-  bucket = aws_s3_bucket.this.bucket
+  for_each = {
+    for bucket_key, bucket in aws_s3_bucket.this : bucket_key => bucket if var.config.expiration_days >= 0
+  }
+
+  bucket = each.value.id
 
   rule {
     id     = "expire"
@@ -176,6 +193,8 @@ data "aws_iam_policy_document" "this" {
 }
 
 resource "aws_s3_bucket_policy" "this" {
-  bucket = aws_s3_bucket.this.id
+  for_each = aws_s3_bucket.this
+
+  bucket = each.value.id
   policy = data.aws_iam_policy_document.this.json
 }

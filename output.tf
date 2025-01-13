@@ -1,17 +1,18 @@
 output "s3_bucket" {
   description = "The website S3 bucket."
-  value       = aws_s3_bucket.this.bucket
+  value       = [for bucket in aws_s3_bucket.this : bucket.bucket]
 }
 
 output "s3_bucket_arn" {
   description = "The website S3 bucket ARN."
-  value       = aws_s3_bucket.this.arn
+  value       = [for bucket in aws_s3_bucket.this : bucket.arn]
 }
 
 output "s3_website_domain" {
-  description = "The website S3 bucket."
-  value       = aws_s3_bucket_website_configuration.this.website_endpoint
+  description = "The website S3 bucket endpoint."
+  value       = [for bucket in aws_s3_bucket_website_configuration.this : bucket.website_endpoint]
 }
+
 
 output "kms_arn" {
   description = "The ARN of the KMS Key."
