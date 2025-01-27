@@ -1,7 +1,7 @@
 resource "aws_wafv2_ip_set" "allowed_cidrs" {
   provider = aws.use1
 
-  name               = "allowed-ip-cidrs"
+  name               = "${local.name_prefix}allowed-ip-cidrs"
   description        = "Allowed IP cidrs"
   scope              = "CLOUDFRONT"
   ip_address_version = "IPV4"
@@ -13,7 +13,7 @@ resource "aws_wafv2_ip_set" "allowed_cidrs" {
 resource "aws_wafv2_ip_set" "blocked_cidrs" {
   provider = aws.use1
 
-  name               = "blocked-ip-cidrs"
+  name               = "${local.name_prefix}blocked-ip-cidrs"
   description        = "Blocked IP cidrs"
   scope              = "CLOUDFRONT"
   ip_address_version = "IPV4"
