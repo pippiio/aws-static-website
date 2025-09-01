@@ -17,7 +17,7 @@ variable "config" {
     disallow_robots         = optional(bool, false)
 
     additional_origins = optional(map(object({
-      domain_name     = string
+      domain_name     = optional(string)
       path            = optional(string)
       shielded        = optional(bool, false)
       protocol_policy = optional(string, "https-only")

@@ -57,7 +57,7 @@ resource "aws_cloudfront_distribution" "this" {
 
     content {
       origin_id   = origin.key
-      domain_name = origin.value.domain_name
+      domain_name = coalesce(origin.value.domain_name, aws_s3_bucket_website_configuration.this.website_endpoint)
       origin_path = origin.value.path
 
       custom_origin_config {
